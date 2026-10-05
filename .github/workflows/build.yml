@@ -37,8 +37,8 @@ jobs:
             echo "include ':app'" > settings.gradle
           fi
 
-          # Gera o gradle wrapper para termos o gradlew executável
-          gradle wrapper
+          # Gera o gradle wrapper fixado na versão 8.5 (compatível com Android/Kotlin)
+          gradle wrapper --gradle-version 8.5
 
           # Dá permissão e compila
           chmod +x ./gradlew
