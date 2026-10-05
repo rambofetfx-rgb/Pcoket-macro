@@ -1,8 +1,7 @@
 name: Build Android APK (Manual)
 
 on:
-  # Dispara APENAS quando você clicar no botão manualmente no GitHub
-  workflow_dispatch:
+  workflow_dispatch: # Dispara apenas quando você clicar em "Run workflow" no GitHub
 
 jobs:
   build:
@@ -20,15 +19,15 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Dar permissão ao Gradle
+      - name: Dar permissão ao Gradle Wrapper
         run: chmod +x gradlew
 
       - name: Compilar com Gradle
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --no-daemon
 
-      - name: Enviar APK como Artefato (Expira em 24h)
+      - name: Enviar Artefato do APK (Expira em 24h)
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 1 # Apaga o artefato automaticamente após 24 horas
+          retention-days: 1
