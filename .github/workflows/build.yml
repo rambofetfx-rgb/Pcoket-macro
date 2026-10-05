@@ -20,9 +20,13 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
 
-      - name: Criar Estrutura do Gradle e Compilar APK
+      - name: Configurar Gradle 8.5
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.5'
+
+      - name: Criar Ficheiros de Configuração e Compilar APK
         shell: bash
         run: |
           # Se o build.gradle da raiz não existir, cria um básico para suportar o módulo app
@@ -37,10 +41,7 @@ jobs:
             echo "include ':app'" > settings.gradle
           fi
 
-          # Usa o Gradle instalado para criar o wrapper completo na versão 8.5 (gerando o jar necessário)
-          gradle wrapper --gradle-version 8.5 --distribution-type bin
-
-          # Dá permissão e compila
+          # Compila o projeto utilizando o gradlew gerado pelo setup-gradle
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon
 
