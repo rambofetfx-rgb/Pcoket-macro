@@ -18,14 +18,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Usa a ferramenta oficial do Gradle para fixar uma versão compatível (8.4) com o AGP 8.1.0
       - name: Instalar e Rodar com Gradle 8.4
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.4'
 
-      - name: Compilar com Gradle
-        run: gradle assembleDebug --no-daemon
+      # Adicionado --stacktrace para mostrar a linha exata do erro no log
+      - name: Compilar com Gradle Detalhado
+        run: gradle assembleDebug --no-daemon --stacktrace
 
       - name: Enviar Artefato do APK (Expira em 24h)
         uses: actions/upload-artifact@v4
