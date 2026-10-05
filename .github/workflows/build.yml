@@ -23,9 +23,9 @@ jobs:
         with:
           gradle-version: '8.4'
 
-      # Adicionado --stacktrace para mostrar a linha exata do erro no log
-      - name: Compilar com Gradle Detalhado
-        run: gradle assembleDebug --no-daemon --stacktrace
+      # Adicionado o 'clean' para limpar resíduos que causam falhas de stale outputs
+      - name: Compilar com Gradle Limpo
+        run: gradle clean assembleDebug --no-daemon --stacktrace
 
       - name: Enviar Artefato do APK (Expira em 24h)
         uses: actions/upload-artifact@v4
