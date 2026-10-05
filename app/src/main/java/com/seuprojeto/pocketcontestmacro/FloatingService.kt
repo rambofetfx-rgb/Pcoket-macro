@@ -6,26 +6,29 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
 import android.view.Gravity
-import android.view.MotionEvent
-import android.view.View
 import android.view.WindowManager
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.Toast
+import java.io.File
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 
 class FloatingService : Service() {
 
     private lateinit var windowManager: WindowManager
-    private lateinit var floatingButton: Button
+    private lateinit var mainLayout: LinearLayout
     private lateinit var params: WindowManager.LayoutParams
+    
+    private val recordedActions = mutableListOf<MacroAction>()
+    private var isRecording = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
-
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
-        // Configuração dos parâmetros da janela flutuante
         val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         } else {
@@ -41,67 +44,110 @@ class FloatingService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = 100
-            y = 200
+            x = 50
+            y = 150
         }
 
-        // Criar o botão flutuante visualmente
-        floatingButton = Button(this).apply {
-            text = "🤖 Macro"
-            setBackgroundColor(android.graphics.Color.parseColor("#E91E63"))
-            setTextColor(android.graphics.Color.WHITE)
-            setPadding(20, 10, 20, 10)
+        mainLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(android.graphics.Color.parseColor("#CC000000"))
+            setPadding(20, 20, 20, 20)
         }
 
-        // Adicionar comportamento de arrastar (Drag & Drop) e Clique
-        var initialX = 0
-        var initialY = 0
-        var initialTouchX = 0f
-        var initialTouchY = 0f
-        var isMoved = false
-
-        floatingButton.setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    initialX = params.x
-                    initialY = params.y
-                    initialTouchX = event.rawX
-                    initialTouchY = event.rawY
-                    isMoved = false
-                    true
+        val btnToggleRecord = Button(this).apply {
+            text = "🔴 Gravar Cliques"
+            setOnClickListener {
+                isRecording = !isRecording
+                if (isRecording) {
+                    recordedActions.clear()
+                    text = "⏹ Parar Gravação"
+                    Toast.makeText(context, "Modo de Gravação Ativo", Toast.LENGTH_SHORT).show()
+                } else {
+                    text = "🔴 Gravar Cliques"
+                    Toast.makeText(context, "Guardado: ${recordedActions.size} cliques", Toast.LENGTH_SHORT).show()
                 }
-                MotionEvent.ACTION_MOVE -> {
-                    val deltaX = (event.rawX - initialTouchX).toInt()
-                    val deltaY = (event.rawY - initialTouchY).toInt()
-
-                    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-                        isMoved = true
-                    }
-
-                    params.x = initialX + deltaX
-                    params.y = initialY + deltaY
-                    windowManager.updateViewLayout(floatingButton, params)
-                    true
-                }
-                MotionEvent.ACTION_UP -> {
-                    if (!isMoved) {
-                        // Ação ao clicar no botão flutuante
-                        Toast.makeText(this@FloatingService, "Painel da Macro Aberto!", Toast.LENGTH_SHORT).show()
-                    }
-                    true
-                }
-                else -> false
             }
         }
 
-        // Adicionar o botão ao ecrã do sistema
-        windowManager.addView(floatingButton, params)
+        val btnPlay = Button(this).apply {
+            text = "▶ Iniciar Macro"
+            setOnClickListener {
+                if (recordedActions.isNotEmpty()) {
+                    Toast.makeText(context, "A executar macro...", Toast.LENGTH_SHORT).show()
+                    AutomationAccessibilityService.instance?.playMacro(recordedActions) {
+                        Toast.makeText(context, "Macro concluída!", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(context, "Nenhuma macro gravada!", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        val btnStop = Button(this).apply {
+            text = "⏸ Parar / Pausar"
+            setOnClickListener {
+                AutomationAccessibilityService.instance?.stopMacro()
+                Toast.makeText(context, "Macro parada.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        val btnSave = Button(this).apply {
+            text = "💾 Salvar Macro"
+            setOnClickListener {
+                saveMacroToFile("default_macro.dat")
+            }
+        }
+
+        val btnLoad = Button(this).apply {
+            text = "📂 Carregar Macro"
+            setOnClickListener {
+                loadMacroFromFile("default_macro.dat")
+            }
+        }
+
+        mainLayout.addView(btnToggleRecord)
+        mainLayout.addView(btnPlay)
+        mainLayout.addView(btnStop)
+        mainLayout.addView(btnSave)
+        mainLayout.addView(btnLoad)
+
+        windowManager.addView(mainLayout, params)
+    }
+
+    private fun saveMacroToFile(filename: String) {
+        try {
+            val file = File(filesDir, filename)
+            ObjectOutputStream(file.outputStream()).use { it.writeObject(recordedActions) }
+            Toast.makeText(this, "Macro guardada com sucesso!", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Erro ao guardar: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun loadMacroFromFile(filename: String) {
+        try {
+            val file = File(filesDir, filename)
+            if (file.exists()) {
+                ObjectInputStream(file.inputStream()).use {
+                    val loaded = it.readObject() as? List<MacroAction>
+                    if (loaded != null) {
+                        recordedActions.clear()
+                        recordedActions.addAll(loaded)
+                        Toast.makeText(this, "Macro carregada (${recordedActions.size} ações)!", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } else {
+                Toast.makeText(this, "Nenhum ficheiro salvo encontrado.", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Erro ao carregar: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::floatingButton.isInitialized) {
-            windowManager.removeView(floatingButton)
+        if (::mainLayout.isInitialized) {
+            windowManager.removeView(mainLayout)
         }
     }
 }
