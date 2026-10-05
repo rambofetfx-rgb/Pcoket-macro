@@ -25,6 +25,7 @@ jobs:
       - name: Dar permissão e Compilar com Gradle
         shell: bash
         run: |
+          cd Pcoket-macro
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon
 
