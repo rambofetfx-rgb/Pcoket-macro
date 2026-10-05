@@ -26,7 +26,7 @@ jobs:
         with:
           gradle-version: '8.5'
 
-      - name: Criar Ficheiros de Configuração e Compilar APK
+      - name: Criar Ficheiros e Gerar Gradle Wrapper
         shell: bash
         run: |
           # Se o build.gradle da raiz não existir, cria um básico para suportar o módulo app
@@ -41,7 +41,10 @@ jobs:
             echo "include ':app'" > settings.gradle
           fi
 
-          # Compila o projeto utilizando o gradlew gerado pelo setup-gradle
+          # Gera o gradlew e os ficheiros de wrapper necessários na versão 8.5
+          gradle wrapper --gradle-version 8.5 --distribution-type bin
+
+          # Compila o projeto
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon
 
