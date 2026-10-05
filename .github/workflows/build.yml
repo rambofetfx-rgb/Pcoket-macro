@@ -26,35 +26,55 @@ jobs:
         with:
           gradle-version: '8.5'
 
-      - name: Corrigir Configurações, Ícones e Compilar
+      - name: Configurar Assinatura de Debug Fixa
         shell: bash
         run: |
-          # Se o build.gradle da raiz não existir, cria um básico para suportar o módulo app
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Corrigir Configurações, Ícones, Serviço e Compilar
+        shell: bash
+        run: |
+          # Se o build.gradle da raiz não existir, cria um básico
           if [ ! -f "build.gradle" ]; then
-            echo "Criando build.gradle na raiz..."
             echo "allprojects { repositories { google(); mavenCentral() } }" > build.gradle
           fi
 
           # Cria o settings.gradle se não existir
           if [ ! -f "settings.gradle" ]; then
-            echo "Criando settings.gradle..."
             echo "include ':app'" > settings.gradle
           fi
 
-          # Cria pastas de mipmap e um ícone adaptativo caso faltem
+          # Injeta a chave de assinatura fixa no build.gradle do app se necessário
+          APP_BUILD="app/build.gradle"
+          if [ -f "$APP_BUILD" ]; then
+            if ! grep -q "signingConfigs" "$APP_BUILD"; then
+              echo "Injetando signingConfigs..."
+              sed -i '/android {/a \    signingConfigs {\n        debug {\n            storeFile file(System.getenv("HOME") + "/.android/debug.keystore")\n            storePassword "android"\n            keyAlias "androiddebugkey"\n            keyPassword "android"\n        }\n    }\n    buildTypes {\n        debug {\n            signingConfig signingConfigs.debug\n        }\n    }' "$APP_BUILD"
+            fi
+          fi
+
+          # Cria pastas de mipmap e ícone temporário se faltarem
           mkdir -p app/src/main/res/mipmap-anydpi-v26
           if [ ! -f "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" ]; then
-            echo "Criando ícone temporário ic_launcher.xml..."
             echo '<?xml version="1.0" encoding="utf-8"?><adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:color="#FF000000"/><foreground android:color="#FF000000"/></adaptive-icon>' > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
             cp app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
           fi
 
-          # Corrige o erro de flags de acessibilidade incompatíveis no XML se o ficheiro existir
+          # Corrige flags de acessibilidade
           ACC_CONFIG="app/src/main/res/xml/accessibility_service_config.xml"
           if [ -f "$ACC_CONFIG" ]; then
-            echo "A ajustar accessibility_service_config.xml..."
-            # Remove temporariamente o atributo problemático ou substitui por uma flag válida
             sed -i 's/android:accessibilityFlags="[^"]*"/android:accessibilityFlags="flagDefault"/g' "$ACC_CONFIG" || true
+          fi
+
+          # Regista o FloatingService no manifesto se faltar
+          MANIFEST_FILE="app/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST_FILE" ]; then
+            if ! grep -q "FloatingService" "$MANIFEST_FILE"; then
+              sed -i '/<\/application>/i \        <service android:name=".FloatingService" android:exported="false" />' "$MANIFEST_FILE"
+            fi
           fi
 
           # Gera o gradlew e compila o projeto
