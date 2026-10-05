@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configurar JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -25,9 +25,6 @@ jobs:
       - name: Criar Estrutura do Gradle e Compilar APK
         shell: bash
         run: |
-          # Entra na pasta do projeto
-          cd Pcoket-macro
-          
           # Se o build.gradle da raiz não existir, cria um básico para suportar o módulo app
           if [ ! -f "build.gradle" ]; then
             echo "Criando build.gradle na raiz..."
