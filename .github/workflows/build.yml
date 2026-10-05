@@ -15,13 +15,6 @@ jobs:
       - name: Checkout do Código
         uses: actions/checkout@v4
 
-      - name: Listar ficheiros para encontrar o projeto
-        run: |
-          echo "--- Conteúdo da raiz do repositório ---"
-          ls -la
-          echo "--- Procurando pelo gradlew ---"
-          find . -name "gradlew"
-
       - name: Configurar JDK 17
         uses: actions/setup-java@v4
         with:
@@ -29,18 +22,33 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Dar permissão e Compilar com Gradle
+      - name: Criar Estrutura do Gradle e Compilar APK
         shell: bash
         run: |
-          # Encontra o diretório exato do gradlew automaticamente e executa
-          GRADLEW_PATH=$(find . -name "gradlew" -exec dirname {} \;)
-          echo "Encontrado em: $GRADLEW_PATH"
-          cd "$GRADLEW_PATH"
+          # Entra na pasta do projeto
+          cd Pcoket-macro
+          
+          # Se o build.gradle da raiz não existir, cria um básico para suportar o módulo app
+          if [ ! -f "build.gradle" ]; then
+            echo "Criando build.gradle na raiz..."
+            echo "allprojects { repositories { google(); mavenCentral() } }" > build.gradle
+          fi
+
+          # Cria o settings.gradle se não existir
+          if [ ! -f "settings.gradle" ]; then
+            echo "Criando settings.gradle..."
+            echo "include ':app'" > settings.gradle
+          fi
+
+          # Gera o gradle wrapper para termos o gradlew executável
+          gradle wrapper
+
+          # Dá permissão e compila
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon
 
       - name: Salvar APK como Artefato
-        uses: actions/upload-artifact@v4
+        uses: upload-artifact@v4
         with:
           name: app-debug-apk
           path: '**/build/outputs/apk/debug/app-debug.apk'
