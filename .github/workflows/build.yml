@@ -18,8 +18,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Usa o gradle global do servidor do GitHub em vez do gradlew
-      - name: Compilar com Gradle Global
+      # Usa a ferramenta oficial do Gradle para fixar uma versão compatível (8.4) com o AGP 8.1.0
+      - name: Instalar e Rodar com Gradle 8.4
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4'
+
+      - name: Compilar com Gradle
         run: gradle assembleDebug --no-daemon
 
       - name: Enviar Artefato do APK (Expira em 24h)
