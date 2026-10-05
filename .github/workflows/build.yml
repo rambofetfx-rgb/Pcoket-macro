@@ -26,7 +26,7 @@ jobs:
         with:
           gradle-version: '8.5'
 
-      - name: Criar Ficheiros e Gerar Gradle Wrapper
+      - name: Criar Ficheiros, Ícones em Falta e Compilar
         shell: bash
         run: |
           # Se o build.gradle da raiz não existir, cria um básico para suportar o módulo app
@@ -41,10 +41,22 @@ jobs:
             echo "include ':app'" > settings.gradle
           fi
 
-          # Gera o gradlew e os ficheiros de wrapper necessários na versão 8.5
-          gradle wrapper --gradle-version 8.5 --distribution-type bin
+          # Cria pastas de mipmap e um ícone vetorial básico caso faltem (para evitar erro do AAPT)
+          mkdir -p app/src/main/res/mipmap-anydpi-v26
+          if [ ! -f "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" ]; then
+            echo "Criando ícone temporário ic_launcher.xml..."
+            cat <<EOF > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+            <?xml version="1.0" encoding="utf-8"?>
+            <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+                <background android:color="#FF000000"/>
+                <foreground android:color="#FF000000"/>
+            </adaptive-icon>
+            EOF
+            cp app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+          fi
 
-          # Compila o projeto
+          # Gera o gradlew e compila o projeto
+          gradle wrapper --gradle-version 8.5 --distribution-type bin
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon
 
