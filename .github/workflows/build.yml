@@ -12,21 +12,15 @@ jobs:
       - name: Checkout do Código
         uses: actions/checkout@v4
 
-      - name: Listar arquivos da raiz (Diagnóstico)
-        run: ls -la
-
       - name: Configurar JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-          # Removido o cache automático para evitar erros caso os arquivos do Gradle estejam em subpastas
 
-      - name: Dar permissão ao Gradle Wrapper
-        run: chmod +x gradlew
-
-      - name: Compilar com Gradle
-        run: ./gradlew assembleDebug --no-daemon
+      # Usa o gradle global do servidor do GitHub em vez do gradlew
+      - name: Compilar com Gradle Global
+        run: gradle assembleDebug --no-daemon
 
       - name: Enviar Artefato do APK (Expira em 24h)
         uses: actions/upload-artifact@v4
