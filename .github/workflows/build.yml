@@ -1,7 +1,10 @@
-name: Build Android APK (Manual)
+name: Compilar APK Debug
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
 
 jobs:
   build:
@@ -17,18 +20,16 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
-      - name: Instalar e Rodar com Gradle 8.4
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.4'
+      - name: Dar permissão de execução ao Gradlew
+        run: chmod +x gradlew
 
-      - name: Compilar com Gradle Detalhado
-        run: gradle clean assembleDebug --no-daemon --stacktrace --info --console plain
+      - name: Compilar APK com Gradle
+        run: ./gradlew assembleDebug --no-daemon
 
-      - name: Enviar Artefato do APK (Expira em 24h)
+      - name: Salvar APK como Artefato
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
+          name: app-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 1
