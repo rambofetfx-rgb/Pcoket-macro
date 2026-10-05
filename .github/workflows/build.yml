@@ -37,26 +37,11 @@ jobs:
             echo "include ':app'" > settings.gradle
           fi
 
-          # Força a criação do wrapper utilizando diretamente a versão 8.5 sem depender do gradle global
-          npx @antfu/ni --version || true
-          
-          # Cria os ficheiros do wrapper manualmente para a versão 8.5.0
-          mkdir -p gradle/wrapper
-          cat <<EOF > gradle/wrapper/gradle-wrapper.properties
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-bin.zip
-          networkTimeout=10000
-          validateDistributionUrl=true
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          EOF
+          # Usa o Gradle instalado para criar o wrapper completo na versão 8.5 (gerando o jar necessário)
+          gradle wrapper --gradle-version 8.5 --distribution-type bin
 
-          # Baixa o gradlew executável compatível
-          curl -s https://raw.githubusercontent.com/gradle/gradle/v8.5.0/gradlew > gradlew
+          # Dá permissão e compila
           chmod +x ./gradlew
-
-          # Compila o projeto
           ./gradlew assembleDebug --no-daemon
 
       - name: Salvar APK como Artefato
