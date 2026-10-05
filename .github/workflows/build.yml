@@ -23,9 +23,8 @@ jobs:
         with:
           gradle-version: '8.4'
 
-      # Adicionado --info para exibir o motivo exato da falha na tela
-      - name: Compilar com Gradle Info
-        run: gradle clean assembleDebug --no-daemon --stacktrace --info
+      - name: Compilar com Gradle Detalhado
+        run: gradle clean assembleDebug --no-daemon --stacktrace --info --console plain
 
       - name: Enviar Artefato do APK (Expira em 24h)
         uses: actions/upload-artifact@v4
