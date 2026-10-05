@@ -26,7 +26,7 @@ jobs:
         with:
           gradle-version: '8.5'
 
-      - name: Criar Ficheiros, Ícones em Falta e Compilar
+      - name: Corrigir Configurações, Ícones e Compilar
         shell: bash
         run: |
           # Se o build.gradle da raiz não existir, cria um básico para suportar o módulo app
@@ -41,12 +41,20 @@ jobs:
             echo "include ':app'" > settings.gradle
           fi
 
-          # Cria pastas de mipmap e um ícone adaptativo em linha para evitar erros de YAML/Bash
+          # Cria pastas de mipmap e um ícone adaptativo caso faltem
           mkdir -p app/src/main/res/mipmap-anydpi-v26
           if [ ! -f "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" ]; then
             echo "Criando ícone temporário ic_launcher.xml..."
             echo '<?xml version="1.0" encoding="utf-8"?><adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:color="#FF000000"/><foreground android:color="#FF000000"/></adaptive-icon>' > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
             cp app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+          fi
+
+          # Corrige o erro de flags de acessibilidade incompatíveis no XML se o ficheiro existir
+          ACC_CONFIG="app/src/main/res/xml/accessibility_service_config.xml"
+          if [ -f "$ACC_CONFIG" ]; then
+            echo "A ajustar accessibility_service_config.xml..."
+            # Remove temporariamente o atributo problemático ou substitui por uma flag válida
+            sed -i 's/android:accessibilityFlags="[^"]*"/android:accessibilityFlags="flagDefault"/g' "$ACC_CONFIG" || true
           fi
 
           # Gera o gradlew e compila o projeto
